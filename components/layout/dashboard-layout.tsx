@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useAuth } from "@/contexts/auth-context"
+import { SidebarProvider } from "@/contexts/sidebar-context"
 import { DashboardSidebar } from "./dashboard-sidebar"
 import { DashboardHeader } from "./dashboard-header"
 import { useRouter } from "next/navigation"
@@ -34,12 +35,14 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader />
-      <div className="flex">
-        <DashboardSidebar role={role} />
-        <main className="flex-1 p-6">{children}</main>
+    <SidebarProvider>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="flex">
+          <DashboardSidebar role={role} />
+          <main className="flex-1 p-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

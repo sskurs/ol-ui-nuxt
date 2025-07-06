@@ -58,3 +58,23 @@ export interface AuthState {
   isLoading: boolean
   isAuthenticated: boolean
 }
+
+// Backend API interfaces
+export interface BackendLoginRequest {
+  username: string
+  password: string
+}
+
+export interface BackendLoginResponse {
+  token: string
+  user: {
+    id: string
+    username: string
+    roles: string[]
+  }
+}
+
+export interface BackendErrorResponse {
+  message: string
+  code?: string
+}

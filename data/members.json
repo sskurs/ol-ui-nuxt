@@ -1,0 +1,138 @@
+[
+  {
+    "id": "demo-customer-002",
+    "name": "Jane Smith",
+    "email": "jane.smith@example.com",
+    "phone": "+1-555-0101",
+    "points": 1250,
+    "tier": "Gold",
+    "status": "active",
+    "memberSince": "2024-01-15T10:30:00Z",
+    "lastActivity": "2024-12-20T14:22:00Z",
+    "totalSpent": 2500,
+    "transactions": 15,
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "dateOfBirth": "1990-05-15T00:00:00Z",
+    "gender": "female",
+    "address": {
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10001",
+      "country": "United States"
+    },
+    "emergencyContact": {
+      "name": "John Smith",
+      "phone": "+1-555-0102",
+      "relationship": "Spouse"
+    },
+    "preferences": {
+      "marketingEmails": true,
+      "smsNotifications": true,
+      "newsletter": true
+    }
+  },
+  {
+    "id": "demo-customer-003",
+    "name": "Mike Johnson",
+    "email": "mike.johnson@example.com",
+    "phone": "+1-555-0102",
+    "points": 890,
+    "tier": "Silver",
+    "status": "active",
+    "memberSince": "2024-02-20T09:15:00Z",
+    "lastActivity": "2024-12-18T16:45:00Z",
+    "totalSpent": 1800.5,
+    "transactions": 12,
+    "firstName": "Mike",
+    "lastName": "Johnson",
+    "dateOfBirth": "1985-08-22T00:00:00Z",
+    "gender": "male",
+    "address": {
+      "street": "456 Oak Ave",
+      "city": "Los Angeles",
+      "state": "CA",
+      "zipCode": "90210",
+      "country": "United States"
+    },
+    "emergencyContact": {
+      "name": "Sarah Johnson",
+      "phone": "+1-555-0103",
+      "relationship": "Sister"
+    },
+    "preferences": {
+      "marketingEmails": false,
+      "smsNotifications": true,
+      "newsletter": false
+    }
+  },
+  {
+    "name": "Senthil Kumar",
+    "email": "sskur@msn.com",
+    "phone": "07305461565",
+    "tier": "Bronze",
+    "status": "active",
+    "firstName": "Senthil",
+    "lastName": "Kumar",
+    "dateOfBirth": "2025-07-06T18:30:00.000Z",
+    "gender": "male",
+    "address": {
+      "street": "33/16, Kamaraja Salai",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "zipCode": "600087",
+      "country": "United States"
+    },
+    "emergencyContact": {
+      "name": "",
+      "phone": "",
+      "relationship": ""
+    },
+    "preferences": {
+      "marketingEmails": true,
+      "smsNotifications": true,
+      "newsletter": true
+    },
+    "id": "demo-customer-1751829903337",
+    "memberSince": "2025-07-06T19:25:03.337Z",
+    "lastActivity": "2025-07-06T19:25:03.338Z",
+    "points": 0,
+    "totalSpent": 0,
+    "transactions": 0
+  },
+  {
+    "name": "Senthil Kumar",
+    "email": "sskur@msn.com",
+    "phone": "07305461565",
+    "tier": "Bronze",
+    "status": "active",
+    "firstName": "Senthil",
+    "lastName": "Kumar",
+    "dateOfBirth": "2025-03-08T18:30:00.000Z",
+    "gender": "male",
+    "address": {
+      "street": "33/16, Kamaraja Salai",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "zipCode": "600087",
+      "country": "United States"
+    },
+    "emergencyContact": {
+      "name": "",
+      "phone": "",
+      "relationship": ""
+    },
+    "preferences": {
+      "marketingEmails": true,
+      "smsNotifications": true,
+      "newsletter": true
+    },
+    "id": "demo-customer-1751829949313",
+    "memberSince": "2025-07-06T19:25:49.314Z",
+    "lastActivity": "2025-07-06T19:25:49.314Z",
+    "points": 0,
+    "totalSpent": 0,
+    "transactions": 0
+  }
+]

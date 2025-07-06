@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { User } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import Image from "next/image"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState<RegisterData>({
@@ -51,13 +52,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-8 h-8 text-purple-600" />
+          <div className="flex items-center justify-center mb-4">
+                    <Image src="/logo.png" alt="LoyaltyPro Logo" width={40} height={40} className="mr-3" />
+        <h1 className="text-2xl font-bold text-primary">LoyaltyPro™</h1>
           </div>
-          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+          <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+          </div>
           <CardDescription>Join our loyalty program today</CardDescription>
         </CardHeader>
 

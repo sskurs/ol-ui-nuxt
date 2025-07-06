@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,103 +16,61 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, UserPlus, Mail, Phone, Calendar, Coins, Gift, Ban, CheckCircle } from "lucide-react"
+import { Search, UserPlus, Mail, Phone, Calendar, Coins, Gift, Ban, CheckCircle, ChevronLeft, ChevronRight, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { adminAPI } from "@/lib/api"
 
 interface Member {
   id: string
   name: string
   email: string
   phone: string
-  joinDate: string
-  tier: "bronze" | "silver" | "gold" | "platinum"
+  memberSince: string
+  tier: string
   points: number
   totalSpent: number
   status: "active" | "inactive" | "suspended"
   lastActivity: string
-  transactionCount: number
+  transactions: number
 }
 
 export default function MembersPage() {
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [tierFilter, setTierFilter] = useState("all")
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
 
-  // Mock data - replace with actual API call
-  const mockMembers: Member[] = [
-    {
-      id: "1",
-      name: "Alice Johnson",
-      email: "alice@example.com",
-      phone: "+1 (555) 123-4567",
-      joinDate: "2023-01-15",
-      tier: "gold",
-      points: 2500,
-      totalSpent: 1250.0,
-      status: "active",
-      lastActivity: "2024-01-05",
-      transactionCount: 45,
-    },
-    {
-      id: "2",
-      name: "Bob Smith",
-      email: "bob@example.com",
-      phone: "+1 (555) 234-5678",
-      joinDate: "2023-03-22",
-      tier: "silver",
-      points: 1200,
-      totalSpent: 600.0,
-      status: "active",
-      lastActivity: "2024-01-03",
-      transactionCount: 28,
-    },
-    {
-      id: "3",
-      name: "Carol Davis",
-      email: "carol@example.com",
-      phone: "+1 (555) 345-6789",
-      joinDate: "2023-06-10",
-      tier: "platinum",
-      points: 5000,
-      totalSpent: 2500.0,
-      status: "active",
-      lastActivity: "2024-01-06",
-      transactionCount: 78,
-    },
-    {
-      id: "4",
-      name: "David Wilson",
-      email: "david@example.com",
-      phone: "+1 (555) 456-7890",
-      joinDate: "2023-08-05",
-      tier: "bronze",
-      points: 450,
-      totalSpent: 225.0,
-      status: "inactive",
-      lastActivity: "2023-12-15",
-      transactionCount: 12,
-    },
-  ]
-
-  const { data: members = mockMembers, isLoading } = useQuery({
-    queryKey: ["admin-members"],
-    queryFn: () => Promise.resolve(mockMembers),
+  // Real API call to backend
+  const { data: membersData, isLoading, error } = useQuery({
+    queryKey: ["admin-members", currentPage, pageSize, searchTerm],
+    queryFn: () => adminAPI.getMembers(currentPage, pageSize, searchTerm),
+    placeholderData: (previousData) => previousData,
   })
 
-  const filteredMembers = members.filter((member) => {
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const members = membersData?.members || []
+  const totalMembers = membersData?.total || 0
+  const totalPages = membersData?.totalPages || 1
+
+  const filteredMembers = members.filter((member: Member) => {
     const matchesStatus = statusFilter === "all" || member.status === statusFilter
-    const matchesTier = tierFilter === "all" || member.tier === tierFilter
-    return matchesSearch && matchesStatus && matchesTier
+    const matchesTier = tierFilter === "all" || member.tier?.toLowerCase() === tierFilter.toLowerCase()
+    return matchesStatus && matchesTier
   })
 
   const getTierColor = (tier: string) => {
-    switch (tier) {
+    switch (tier?.toLowerCase()) {
       case "bronze":
         return "bg-amber-100 text-amber-800"
       case "silver":
@@ -146,10 +105,69 @@ export default function MembersPage() {
     toast.success(`Points ${points > 0 ? "added" : "deducted"} successfully`)
   }
 
-  if (isLoading) {
+  const handleDeleteMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/members/${memberId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete member')
+      }
+
+      toast.success('Member deleted successfully')
+      
+      // Invalidate and refetch the members query
+      queryClient.invalidateQueries({ queryKey: ["admin-members"] })
+      
+    } catch (error) {
+      console.error('Error deleting member:', error)
+      toast.error('Failed to delete member')
+    }
+  }
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1) // Reset to first page when searching
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  if (error) {
     return (
       <DashboardLayout role="admin">
-        <div>Loading...</div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-red-600">Error Loading Members</h3>
+            <p className="text-muted-foreground">Failed to load member data from backend</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="mt-4"
+              variant="outline"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (isLoading && !membersData) {
+    return (
+      <DashboardLayout role="admin">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">Loading members...</p>
+          </div>
+        </div>
       </DashboardLayout>
     )
   }
@@ -162,7 +180,7 @@ export default function MembersPage() {
             <h1 className="text-3xl font-bold">Member Management</h1>
             <p className="text-muted-foreground">Manage and monitor loyalty program members</p>
           </div>
-          <Button>
+          <Button onClick={() => router.push('/admin/members/add')}>
             <UserPlus className="w-4 h-4 mr-2" />
             Add Member
           </Button>
@@ -175,8 +193,8 @@ export default function MembersPage() {
               <CardTitle className="text-sm font-medium">Total Members</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{members.length.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+12% from last month</p>
+              <div className="text-2xl font-bold">{totalMembers.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">From database</p>
             </CardContent>
           </Card>
           <Card>
@@ -184,8 +202,12 @@ export default function MembersPage() {
               <CardTitle className="text-sm font-medium">Active Members</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{members.filter((m) => m.status === "active").length}</div>
-              <p className="text-xs text-muted-foreground">85% of total</p>
+              <div className="text-2xl font-bold">
+                {members.filter((m) => m.status === "active").length}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {totalMembers > 0 ? Math.round((members.filter((m) => m.status === "active").length / totalMembers) * 100) : 0}% of total
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -194,46 +216,49 @@ export default function MembersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {Math.round(members.reduce((acc, m) => acc + m.points, 0) / members.length).toLocaleString()}
+                {members.length > 0 
+                  ? Math.round(members.reduce((acc, m) => acc + (m.points || 0), 0) / members.length).toLocaleString()
+                  : "0"
+                }
               </div>
               <p className="text-xs text-muted-foreground">Per member</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Points</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${members.reduce((acc, m) => acc + m.totalSpent, 0).toLocaleString()}
+                {members.reduce((acc, m) => acc + (m.points || 0), 0).toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">Lifetime value</p>
+              <p className="text-xs text-muted-foreground">Circulating</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Filters and Search */}
         <Card>
           <CardHeader>
-            <CardTitle>Members</CardTitle>
-            <CardDescription>Search and filter loyalty program members</CardDescription>
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>Search and filter members</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search members..."
+                    placeholder="Search by name or email..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
                   />
                 </div>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
@@ -243,8 +268,8 @@ export default function MembersPage() {
                 </SelectContent>
               </Select>
               <Select value={tierFilter} onValueChange={setTierFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by tier" />
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Tier" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Tiers</SelectItem>
@@ -255,174 +280,214 @@ export default function MembersPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Members Table */}
-            <div className="space-y-4">
-              {filteredMembers.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-medium">
-                        {member.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{member.name}</h4>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span className="flex items-center">
-                          <Mail className="w-3 h-3 mr-1" />
-                          {member.email}
-                        </span>
-                        <span className="flex items-center">
-                          <Phone className="w-3 h-3 mr-1" />
-                          {member.phone}
-                        </span>
-                        <span className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          Joined {new Date(member.joinDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
-                      <div className="flex items-center space-x-1">
-                        <Coins className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{member.points.toLocaleString()}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Points</p>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="font-medium">${member.totalSpent.toFixed(2)}</span>
-                      <p className="text-xs text-muted-foreground">Total Spent</p>
-                    </div>
-
-                    <div className="flex flex-col space-y-1">
-                      <Badge className={getTierColor(member.tier)}>
-                        {member.tier.charAt(0).toUpperCase() + member.tier.slice(1)}
-                      </Badge>
-                      <Badge className={getStatusColor(member.status)}>
-                        {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
-                      </Badge>
-                    </div>
-
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={() => setSelectedMember(member)}>
-                          Manage
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Manage Member: {member.name}</DialogTitle>
-                          <DialogDescription>Update member information and manage their account</DialogDescription>
-                        </DialogHeader>
-
-                        <Tabs defaultValue="details" className="w-full">
-                          <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="details">Details</TabsTrigger>
-                            <TabsTrigger value="points">Points</TabsTrigger>
-                            <TabsTrigger value="actions">Actions</TabsTrigger>
-                          </TabsList>
-
-                          <TabsContent value="details" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-sm font-medium">Name</label>
-                                <Input value={member.name} readOnly />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Email</label>
-                                <Input value={member.email} readOnly />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Phone</label>
-                                <Input value={member.phone} readOnly />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Tier</label>
-                                <Select defaultValue={member.tier}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="bronze">Bronze</SelectItem>
-                                    <SelectItem value="silver">Silver</SelectItem>
-                                    <SelectItem value="gold">Gold</SelectItem>
-                                    <SelectItem value="platinum">Platinum</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="points" className="space-y-4">
-                            <div className="text-center p-4 bg-muted rounded-lg">
-                              <div className="text-2xl font-bold">{member.points.toLocaleString()}</div>
-                              <p className="text-sm text-muted-foreground">Current Points Balance</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-sm font-medium">Add Points</label>
-                                <div className="flex space-x-2">
-                                  <Input type="number" placeholder="Amount" />
-                                  <Button onClick={() => handlePointsAdjustment(member.id, 100)}>Add</Button>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Deduct Points</label>
-                                <div className="flex space-x-2">
-                                  <Input type="number" placeholder="Amount" />
-                                  <Button variant="outline" onClick={() => handlePointsAdjustment(member.id, -100)}>
-                                    Deduct
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="actions" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <Button
-                                variant="outline"
-                                className="flex items-center justify-center bg-transparent"
-                                onClick={() => handleStatusChange(member.id, "active")}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Activate Account
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="flex items-center justify-center bg-transparent"
-                                onClick={() => handleStatusChange(member.id, "suspended")}
-                              >
-                                <Ban className="w-4 h-4 mr-2" />
-                                Suspend Account
-                              </Button>
-                              <Button variant="outline" className="flex items-center justify-center bg-transparent">
-                                <Mail className="w-4 h-4 mr-2" />
-                                Send Email
-                              </Button>
-                              <Button variant="outline" className="flex items-center justify-center bg-transparent">
-                                <Gift className="w-4 h-4 mr-2" />
-                                Send Reward
-                              </Button>
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
+
+        {/* Members Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Members ({filteredMembers.length} of {totalMembers})</CardTitle>
+            <CardDescription>Manage loyalty program members</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No members found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary">
+                          {member.name.split(" ").map((n: string) => n[0]).join("")}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{member.name}</h3>
+                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <Badge className={getTierColor(member.tier)}>{member.tier || "Bronze"}</Badge>
+                      <Badge className={getStatusColor(member.status)}>{member.status}</Badge>
+                      <div className="text-right">
+                        <p className="font-medium">{member.points?.toLocaleString() || 0} points</p>
+                        <p className="text-sm text-muted-foreground">
+                          {member.transactions || 0} transactions
+                        </p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedMember(member)}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/admin/members/${member.id}/edit`)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Member
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteMember(member.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Member
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <p className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalMembers)} of {totalMembers} members
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Member Details Dialog */}
+        <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Member Details</DialogTitle>
+              <DialogDescription>View and manage member information</DialogDescription>
+            </DialogHeader>
+            {selectedMember && (
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                  <TabsTrigger value="actions">Actions</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Name</label>
+                      <p className="text-sm text-muted-foreground">{selectedMember.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Email</label>
+                      <p className="text-sm text-muted-foreground">{selectedMember.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Phone</label>
+                      <p className="text-sm text-muted-foreground">{selectedMember.phone || "N/A"}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Member Since</label>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(selectedMember.memberSince).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Current Points</label>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedMember.points?.toLocaleString() || 0}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Total Spent</label>
+                      <p className="text-sm text-muted-foreground">
+                        ${selectedMember.totalSpent?.toFixed(2) || "0.00"}
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+                <TabsContent value="activity" className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Last Activity</label>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedMember.lastActivity 
+                        ? new Date(selectedMember.lastActivity).toLocaleString()
+                        : "No recent activity"
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Total Transactions</label>
+                    <p className="text-sm text-muted-foreground">{selectedMember.transactions || 0}</p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="actions" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handlePointsAdjustment(selectedMember.id, 100)}
+                    >
+                      <Coins className="w-4 h-4 mr-2" />
+                      Add 100 Points
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handlePointsAdjustment(selectedMember.id, -50)}
+                    >
+                      <Coins className="w-4 h-4 mr-2" />
+                      Deduct 50 Points
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleStatusChange(selectedMember.id, "suspended")}
+                    >
+                      <Ban className="w-4 h-4 mr-2" />
+                      Suspend
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleStatusChange(selectedMember.id, "active")}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Activate
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )

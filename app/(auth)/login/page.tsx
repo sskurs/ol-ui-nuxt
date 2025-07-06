@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { useTheme } from "@/contexts/theme-context"
 import type { LoginCredentials } from "@/types/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +14,15 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff, User, Building, Shield } from "lucide-react"
+import { Eye, EyeOff, User, Building, Shield, Moon, Sun, Monitor } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import Image from "next/image"
 
 const roleConfig = {
   consumer: {
@@ -50,7 +58,19 @@ export default function LoginPage() {
   })
 
   const { login, isLoading } = useAuth()
+  const { theme, setTheme } = useTheme()
   const router = useRouter()
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case "light":
+        return <Sun className="h-4 w-4" />
+      case "dark":
+        return <Moon className="h-4 w-4" />
+      default:
+        return <Monitor className="h-4 w-4" />
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,13 +103,42 @@ export default function LoginPage() {
   const IconComponent = currentConfig.icon
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="bg-background/10 backdrop-blur-sm border border-border/20">
+              {getThemeIcon()}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              <Sun className="mr-2 h-4 w-4" />
+              <span>Light</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <Moon className="mr-2 h-4 w-4" />
+              <span>Dark</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              <Monitor className="mr-2 h-4 w-4" />
+              <span>System</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <IconComponent className="w-8 h-8 text-purple-600" />
+          <div className="flex items-center justify-center mb-4">
+                    <Image src="/logo.png" alt="LoyaltyPro Logo" width={40} height={40} className="mr-3" />
+        <h1 className="text-2xl font-bold text-primary">LoyaltyPro™</h1>
           </div>
-          <CardTitle className="text-2xl font-bold">LoyaltyPro</CardTitle>
+          <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <IconComponent className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+          </div>
           <CardDescription>Choose your login type</CardDescription>
         </CardHeader>
 

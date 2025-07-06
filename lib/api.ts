@@ -16,13 +16,20 @@ class APIClient {
     const url = `${this.baseURL}${endpoint}`
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
 
+    console.log("🌐 API request to:", url)
+    console.log("🔐 Token from localStorage:", token ? "Present" : "Missing")
+    
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...opts.headers,
+    }
+    
+    console.log("📋 Request headers:", headers)
+
     const res = await fetch(url, {
       // Default headers
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...opts.headers,
-      },
+      headers,
       ...opts,
     })
 

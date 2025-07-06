@@ -1,6 +1,8 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-context"
+import { useTheme } from "@/contexts/theme-context"
+import { useSidebar } from "@/contexts/sidebar-context"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,11 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, LogOut, Settings, User } from "lucide-react"
+import { Bell, LogOut, Settings, User, Moon, Sun, Monitor, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 
 export function DashboardHeader() {
   const { user, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const { isCollapsed, toggleSidebar } = useSidebar()
 
   const getInitials = (name: string) => {
     return name
@@ -38,17 +43,68 @@ export function DashboardHeader() {
     }
   }
 
+  const getThemeIcon = () => {
+    switch (theme) {
+      case "light":
+        return <Sun className="h-4 w-4" />
+      case "dark":
+        return <Moon className="h-4 w-4" />
+      default:
+        return <Monitor className="h-4 w-4" />
+    }
+  }
+
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center px-6">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-primary">LoyaltyPro</h1>
+          {/* Sidebar Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="mr-2"
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+            <span className="sr-only">Toggle sidebar</span>
+          </Button>
+
+          <Image src="/logo.png" alt="LoyaltyPro Logo" width={32} height={32} className="mr-4" />
+          <h1 className="text-2xl font-bold text-primary">LoyaltyPro™</h1>
           <Badge variant={getRoleBadgeVariant(user?.role || "")}>
-            {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+            {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "User"}
           </Badge>
         </div>
 
         <div className="ml-auto flex items-center space-x-4">
+          {/* Theme Toggle */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                {getThemeIcon()}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTheme("light")}>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>Light</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>Dark</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("system")}>
+                <Monitor className="mr-2 h-4 w-4" />
+                <span>System</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="h-4 w-4" />
